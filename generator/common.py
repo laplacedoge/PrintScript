@@ -1,4 +1,4 @@
 from abc import ABC, abstractmethod
 
-class Language(ABC):
+class Generator(ABC):
     pass

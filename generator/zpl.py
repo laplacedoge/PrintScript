@@ -4,7 +4,7 @@ import cv2 as cv
 import numpy as np
 import math
 
-class ZplLang(common.Language):
+class ZplGenerator(common.Generator):
     LINE_BREAK = b"\r\n"
 
     crc16Ccitt = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0xFFFF, xorOut=0x0000)
@@ -12,7 +12,7 @@ class ZplLang(common.Language):
     def __init__(self) -> None:
         super().__init__()
 
-        self.eol = ZplLang.LINE_BREAK
+        self.eol = ZplGenerator.LINE_BREAK
 
         self.printWidth = device.DEFAULT_PRINT_WIDTH
         self.labelLength = device.DEFAULT_LABEL_LENGTH
@@ -24,23 +24,23 @@ class ZplLang(common.Language):
     def setEol(self, eol: str):
         self.eol = eol
 
-    def setPrintWidth(self, width: int) -> "ZplLang":
+    def setPrintWidth(self, width: int) -> "ZplGenerator":
         self.printWidth = width
 
-    def setLabelLength(self, length: int) -> "ZplLang":
+    def setLabelLength(self, length: int) -> "ZplGenerator":
         self.labelLength = length
 
-    def setLabelHomePosition(self, pos: tuple | list) -> "ZplLang":
+    def setLabelHomePosition(self, pos: tuple | list) -> "ZplGenerator":
         if isinstance(pos, list):
             pos = tuple(pos)
 
         self.labelHomePos = pos
 
-    def setLabelShift(self, shift: int) -> "ZplLang":
+    def setLabelShift(self, shift: int) -> "ZplGenerator":
         self.labelShift = shift
 
     def __MakeZ64Data(self, data: bytes) -> bytes:
-        crc16 = ZplLang.crc16Ccitt(data)
+        crc16 = ZplGenerator.crc16Ccitt(data)
         compressed = zlib.compress(data)
         encoded = base64.b64encode(compressed)
 
@@ -90,7 +90,7 @@ class ZplLang(common.Language):
 
         return carr
 
-    def addGraphicField(self, pos: tuple | list, size: tuple | list, path: str, comp: str="") -> "ZplLang":
+    def addGraphicField(self, pos: tuple | list, size: tuple | list, path: str, comp: str="") -> "ZplGenerator":
         script = bytearray()
 
         originalImage = cv.imread(path, cv.IMREAD_GRAYSCALE)
