@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
 
 class Generator(ABC):
-    pass
+    @abstractmethod
+    def generateScript(self) -> bytes:
+        pass
