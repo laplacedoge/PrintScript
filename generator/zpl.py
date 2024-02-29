@@ -44,6 +44,15 @@ class ZplGenerator(common.Generator):
         compressed = zlib.compress(data)
         encoded = base64.b64encode(compressed)
 
+        srcBytes = len(data)
+        compBytes = len(compressed)
+        encBytes = len(encoded)
+
+        print("Compression rate: {:.2f}/{:.2f} KiB ({:.2f}%)".format(
+            compBytes / 1024, srcBytes / 1024, compBytes / srcBytes * 100))
+        print("Decrease rate: {:.2f}/{:.2f} KiB ({:.2f}%)".format(
+            encBytes / 1024, srcBytes / 1024, encBytes / srcBytes * 100))
+
         script = b":Z64:" + encoded + f":{crc16:04X}".encode("ascii")
 
         return script
