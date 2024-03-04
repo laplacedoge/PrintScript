@@ -1,5 +1,7 @@
 .venv/
 .vscode/
+dist/
 __pycache__/
 output/
 sample/
+*.egg-info/
