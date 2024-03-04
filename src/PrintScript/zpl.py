@@ -1,10 +1,10 @@
 from . import common, device
 import crcmod, zlib, base64
-import cv2 as cv
 import numpy as np
+import cv2 as cv
 import math
 
-class ZplGenerator(common.Generator):
+class Generator(common.Generator):
     LINE_BREAK = b"\r\n"
 
     crc16Ccitt = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0xFFFF, xorOut=0x0000)
@@ -12,67 +12,57 @@ class ZplGenerator(common.Generator):
     def __init__(self) -> None:
         super().__init__()
 
-        self.eol = ZplGenerator.LINE_BREAK
+        self.__resetParam()
+
+    def __resetParam(self):
+        self.eol = Generator.LINE_BREAK
 
         self.printWidth = device.DEFAULT_PRINT_WIDTH
         self.labelLength = device.DEFAULT_LABEL_LENGTH
         self.labelHomePos = device.DEFAULT_LABEL_HOME_POS
         self.labelShift = device.DEFAULT_LABEL_SHIFT
 
-        self.graphList = []
+        self.textQueue = []
+        self.graphQueue = []
 
-    def setEol(self, eol: str):
+    def clear(self):
+        self.__resetParam()
+
+    def setEol(self, eol: str) -> "Generator":
         self.eol = eol
+        return self
 
-    def setPrintWidth(self, width: int) -> "ZplGenerator":
+    def setPrintWidth(self, width: int) -> "Generator":
         self.printWidth = width
+        return self
 
-    def setLabelLength(self, length: int) -> "ZplGenerator":
+    def setLabelLength(self, length: int) -> "Generator":
         self.labelLength = length
+        return self
 
-    def setLabelHomePosition(self, pos: tuple | list) -> "ZplGenerator":
+    def setLabelHomePosition(self, pos: tuple | list) -> "Generator":
         if isinstance(pos, list):
             pos = tuple(pos)
-
         self.labelHomePos = pos
+        return self
 
-    def setLabelShift(self, shift: int) -> "ZplGenerator":
+    def setLabelShift(self, shift: int) -> "Generator":
         self.labelShift = shift
+        return self
 
-    def __MakeZ64Data(self, data: bytes) -> bytes:
-        crc16 = ZplGenerator.crc16Ccitt(data)
+    def __makeZ64Data(self, data: bytes) -> bytes:
+        crc16 = Generator.crc16Ccitt(data)
         compressed = zlib.compress(data)
         encoded = base64.b64encode(compressed)
-
-        srcBytes = len(data)
-        compBytes = len(compressed)
-        encBytes = len(encoded)
-
-        print("Compression rate: {:.2f}/{:.2f} KiB ({:.2f}%)".format(
-            compBytes / 1024, srcBytes / 1024, compBytes / srcBytes * 100))
-        print("Decrease rate: {:.2f}/{:.2f} KiB ({:.2f}%)".format(
-            encBytes / 1024, srcBytes / 1024, encBytes / srcBytes * 100))
 
         script = b":Z64:" + encoded + f":{crc16:04X}".encode("ascii")
 
         return script
 
-    def get_new_val(self, old_val, nc):
-        """
-        Get the "closest" colour to old_val in the range [0,1] per channel divided
-        into nc values.
-
-        """
-
+    def __getNewVal(self, old_val, nc):
         return np.round(old_val * (nc - 1)) / (nc - 1)
 
-    def floydSteinbergDither(self, img, nc):
-        """
-        Floyd-Steinberg dither the image img into a palette with nc colours per
-        channel.
-
-        """
-
+    def __floydSteinbergDither(self, img, nc):
         arr = np.array(img, dtype=float) / 255
 
         new_height = arr.shape[0]
@@ -80,12 +70,10 @@ class ZplGenerator(common.Generator):
 
         for ir in range(new_height):
             for ic in range(new_width):
-                # NB need to copy here for RGB arrays otherwise err will be (0,0,0)!
                 old_val = arr[ir, ic].copy()
-                new_val = self.get_new_val(old_val, nc)
+                new_val = self.__getNewVal(old_val, nc)
                 arr[ir, ic] = new_val
                 err = old_val - new_val
-                # In this simple example, we will just ignore the border pixels.
                 if ic < new_width - 1:
                     arr[ir, ic+1] += err * 7/16
                 if ir < new_height - 1:
@@ -99,7 +87,7 @@ class ZplGenerator(common.Generator):
 
         return carr
 
-    def addGraphicField(self, pos: tuple | list, size: tuple | list, path: str, comp: str="") -> "ZplGenerator":
+    def addGraphicField(self, pos: tuple | list, size: tuple | list, path: str) -> "Generator":
         script = bytearray()
 
         originalImage = cv.imread(path, cv.IMREAD_GRAYSCALE)
@@ -110,12 +98,8 @@ class ZplGenerator(common.Generator):
         originalWidth = originalImage.shape[1]
         originalHeight = originalImage.shape[0]
 
-        print(f"originalSize: {originalWidth},{originalHeight}")
-
         desiredWidth = size[0]
         desiredHeight = size[1]
-
-        print(f"desiredSize: {desiredWidth},{desiredHeight}")
 
         if desiredWidth == -1:
             resizedWidth = round(originalWidth * (desiredHeight / originalHeight))
@@ -127,19 +111,13 @@ class ZplGenerator(common.Generator):
             resizedWidth = desiredWidth
             resizedHeight = desiredHeight
 
-        print(f"resizedSize: {resizedWidth},{resizedHeight}")
-
         resizedImage = cv.resize(originalImage, (resizedWidth, resizedHeight), interpolation=cv.INTER_CUBIC)
-
-        cv.imwrite(path + ".resized.png", resizedImage)
 
         imageMaxY = posY + resizedHeight
         imageMaxX = posX + resizedWidth
 
         croppedWidth = self.printWidth - posX if imageMaxX > self.printWidth else resizedWidth
         croppedHeight = self.labelLength - posY if imageMaxY > self.labelLength else resizedHeight
-
-        print(f"croppedSize: {croppedWidth},{croppedHeight}")
 
         croppedImage = resizedImage[:croppedHeight,:croppedWidth]
 
@@ -152,11 +130,7 @@ class ZplGenerator(common.Generator):
         finalHeight = croppedHeight
         finalImage = paddedImage
 
-        print(f"finalSize: {finalWidth},{finalHeight}")
-
-        finalImage = self.floydSteinbergDither(finalImage, 2)
-
-        cv.imwrite(path + ".modified.png", finalImage)
+        finalImage = self.__floydSteinbergDither(finalImage, 2)
 
         finalImage = 255 - finalImage
 
@@ -171,11 +145,13 @@ class ZplGenerator(common.Generator):
         dataLen = len(data)
 
         script += f"^FO{pos[0]},{pos[1]}".encode("ascii") + self.eol
-        script += f"^GFA,{dataLen},{dataLen},{bytesPerRow},".encode("ascii") + self.__MakeZ64Data(data) + self.eol
+        script += f"^GFA,{dataLen},{dataLen},{bytesPerRow},".encode("ascii") + self.__makeZ64Data(data) + self.eol
 
-        self.graphList.append(script)
+        self.graphQueue.append(script)
 
-    def generateScript(self) -> bytes:
+        return self
+
+    def makeScript(self) -> bytes:
         script = bytearray()
 
         script += b"^XA" + self.eol
@@ -185,7 +161,7 @@ class ZplGenerator(common.Generator):
         script += f"^LH{self.labelHomePos[0]},{self.labelHomePos[1]}".encode("ascii") + self.eol
         script += f"^LS{self.labelShift}".encode("ascii") + self.eol
 
-        for graph in self.graphList:
+        for graph in self.graphQueue:
             script += graph
 
         script += b"^XZ"
