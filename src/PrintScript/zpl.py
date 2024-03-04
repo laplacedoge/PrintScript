@@ -40,7 +40,7 @@ class Generator(common.Generator):
         self.labelLength = length
         return self
 
-    def setLabelHomePosition(self, pos: tuple | list) -> "Generator":
+    def setLabelHomePosition(self, pos: tuple) -> "Generator":
         if isinstance(pos, list):
             pos = tuple(pos)
         self.labelHomePos = pos
@@ -87,7 +87,7 @@ class Generator(common.Generator):
 
         return carr
 
-    def addGraphicField(self, pos: tuple | list, size: tuple | list, path: str) -> "Generator":
+    def addGraphicField(self, pos: tuple, size: tuple, path: str) -> "Generator":
         script = bytearray()
 
         originalImage = cv.imread(path, cv.IMREAD_GRAYSCALE)
