@@ -1,8 +1,34 @@
 from . import common, device
 import crcmod, zlib, base64
+from numba import jit
 import numpy as np
 import cv2 as cv
 import math
+
+@jit(nopython=True)
+def FloydSteinbergDither(img: np.ndarray):
+    arr = img.astype(np.int32)
+    new_height, new_width = arr.shape
+
+    for ir in range(new_height):
+        for ic in range(new_width):
+            old_val = arr[ir, ic]
+            new_val = 0 if old_val < 128 else 255
+            arr[ir, ic] = new_val
+            err = old_val - new_val
+
+            if ic < new_width - 1:
+                arr[ir, ic + 1] += err * 7 // 16
+            if ir < new_height - 1:
+                if ic > 0:
+                    arr[ir + 1, ic - 1] += err * 3 // 16
+                arr[ir + 1, ic] += err * 5 // 16
+                if ic < new_width - 1:
+                    arr[ir + 1, ic + 1] += err // 16
+
+    np.clip(arr, 0, 255, out=arr)
+
+    return arr.astype(np.uint8)
 
 class Generator(common.Generator):
     LINE_BREAK = b"\r\n"
@@ -59,34 +85,6 @@ class Generator(common.Generator):
 
         return script
 
-    def __getNewVal(self, old_val, nc):
-        return np.round(old_val * (nc - 1)) / (nc - 1)
-
-    def __floydSteinbergDither(self, img, nc):
-        arr = np.array(img, dtype=float) / 255
-
-        new_height = arr.shape[0]
-        new_width = arr.shape[1]
-
-        for ir in range(new_height):
-            for ic in range(new_width):
-                old_val = arr[ir, ic].copy()
-                new_val = self.__getNewVal(old_val, nc)
-                arr[ir, ic] = new_val
-                err = old_val - new_val
-                if ic < new_width - 1:
-                    arr[ir, ic+1] += err * 7/16
-                if ir < new_height - 1:
-                    if ic > 0:
-                        arr[ir+1, ic-1] += err * 3/16
-                    arr[ir+1, ic] += err * 5/16
-                    if ic < new_width - 1:
-                        arr[ir+1, ic+1] += err / 16
-
-        carr = np.array(arr/np.max(arr, axis=(0,1)) * 255, dtype=np.uint8)
-
-        return carr
-
     def addGraphicField(self, pos: tuple, size: tuple, path: str) -> "Generator":
         script = bytearray()
 
@@ -130,7 +128,7 @@ class Generator(common.Generator):
         finalHeight = croppedHeight
         finalImage = paddedImage
 
-        finalImage = self.__floydSteinbergDither(finalImage, 2)
+        finalImage = FloydSteinbergDither(finalImage)
 
         finalImage = 255 - finalImage
 
