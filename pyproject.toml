@@ -22,3 +22,7 @@ dependencies = [
     "numpy",
     "numba",
 ]
+
+[project.urls]
+Homepage = "https://github.com/laplacedoge/PrintScript"
+Issues = "https://github.com/laplacedoge/PrintScript/issues"
