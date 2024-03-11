@@ -5,7 +5,7 @@ import numpy as np
 import cv2 as cv
 import math
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def FloydSteinbergDither(img: np.ndarray):
     arr = img.astype(np.int32)
     new_height, new_width = arr.shape
