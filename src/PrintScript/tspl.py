@@ -77,19 +77,18 @@ class Generator(common.Generator):
         script = bytearray()
 
         # place SIZE command
-        match self.labelSizeUnit:
-            case "inch":
-                snippet = f"{self.labelWidth}"
-                if self.labelLength is not None:
-                    snippet += f", {self.labelLength}"
-            case "mm":
-                snippet = f"{self.labelWidth} mm"
-                if self.labelLength is not None:
-                    snippet += f", {self.labelLength} mm"
-            case "dot":
-                snippet = f"{self.labelWidth} dot"
-                if self.labelLength is not None:
-                    snippet += f", {self.labelLength} dot"
+        if self.labelSizeUnit == "inch":
+            snippet = f"{self.labelWidth}"
+            if self.labelLength is not None:
+                snippet += f", {self.labelLength}"
+        elif self.labelSizeUnit == "mm":
+            snippet = f"{self.labelWidth} mm"
+            if self.labelLength is not None:
+                snippet += f", {self.labelLength} mm"
+        elif self.labelSizeUnit == "dot":
+            snippet = f"{self.labelWidth} dot"
+            if self.labelLength is not None:
+                snippet += f", {self.labelLength} dot"
         script += f"SIZE {snippet}{self.eol}".encode("ascii")
 
         # place REFERENCE command
