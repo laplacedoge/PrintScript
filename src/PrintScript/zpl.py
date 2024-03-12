@@ -6,7 +6,7 @@ import cv2 as cv
 import math
 
 class Generator(common.Generator):
-    LINE_BREAK = b"\r\n"
+    DEF_LINE_BREAK = "\r\n"
 
     crc16Ccitt = crcmod.mkCrcFun(0x11021, rev=False, initCrc=0xFFFF, xorOut=0x0000)
 
@@ -16,7 +16,7 @@ class Generator(common.Generator):
         self.__resetParam()
 
     def __resetParam(self):
-        self.eol = Generator.LINE_BREAK
+        self.eol = Generator.DEF_LINE_BREAK
 
         self.printWidth = device.DEFAULT_PRINT_WIDTH
         self.labelLength = device.DEFAULT_LABEL_LENGTH
@@ -31,24 +31,30 @@ class Generator(common.Generator):
 
     def setEol(self, eol: str) -> "Generator":
         self.eol = eol
+
         return self
 
     def setPrintWidth(self, width: int) -> "Generator":
         self.printWidth = width
+
         return self
 
     def setLabelLength(self, length: int) -> "Generator":
         self.labelLength = length
+
         return self
 
     def setLabelHomePosition(self, pos: tuple) -> "Generator":
         if isinstance(pos, list):
             pos = tuple(pos)
+
         self.labelHomePos = pos
+
         return self
 
     def setLabelShift(self, shift: int) -> "Generator":
         self.labelShift = shift
+
         return self
 
     def __makeZ64Data(self, data: bytes) -> bytes:
@@ -117,8 +123,9 @@ class Generator(common.Generator):
 
         dataLen = len(data)
 
-        script += f"^FO{pos[0]},{pos[1]}".encode("ascii") + self.eol
-        script += f"^GFA,{dataLen},{dataLen},{bytesPerRow},".encode("ascii") + self.__makeZ64Data(data) + self.eol
+        script += f"^FO{pos[0]},{pos[1]}{self.eol}".encode("ascii")
+        script += f"^GFA,{dataLen},{dataLen},{bytesPerRow},".encode("ascii") + \
+                  self.__makeZ64Data(data) + self.eol.encode("ascii")
 
         self.graphQueue.append(script)
 
@@ -127,16 +134,19 @@ class Generator(common.Generator):
     def makeScript(self) -> bytes:
         script = bytearray()
 
-        script += b"^XA" + self.eol
+        script += f"^XA{self.eol}".encode("ascii")
 
-        script += f"^PW{self.printWidth}".encode("ascii") + self.eol
-        script += f"^LL{self.labelLength}".encode("ascii") + self.eol
-        script += f"^LH{self.labelHomePos[0]},{self.labelHomePos[1]}".encode("ascii") + self.eol
-        script += f"^LS{self.labelShift}".encode("ascii") + self.eol
+        script += f"^PW{self.printWidth}{self.eol}".encode("ascii")
+
+        script += f"^LL{self.labelLength}{self.eol}".encode("ascii")
+
+        script += f"^LH{self.labelHomePos[0]},{self.labelHomePos[1]}{self.eol}".encode("ascii")
+
+        script += f"^LS{self.labelShift}{self.eol}".encode("ascii")
 
         for graph in self.graphQueue:
             script += graph
 
-        script += b"^XZ"
+        script += f"^XZ{self.eol}".encode("ascii")
 
         return bytes(script)
