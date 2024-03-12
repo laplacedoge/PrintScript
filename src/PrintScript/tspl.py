@@ -26,6 +26,13 @@ class Generator(common.Generator):
         self.shiftY = 0
         self.clrImgBuf = True
 
+        # specifies how many sets of labels will be printed
+        self.setNum = 1
+
+        # specifies how many copies should be
+        # printed for each particular label set
+        self.cpyNum = 1
+
     def setEol(self, eol: str) -> "Generator":
         """Set the end-of-line string.
 
@@ -214,6 +221,38 @@ class Generator(common.Generator):
 
         return self
 
+    def setPrintNumber(
+            self,
+            setNum: int,
+            cpyNum: int = 1
+        ) -> "Generator":
+
+        """Set the number of print
+
+        Parameters:
+        setNum -- the number of sets of labels will be printed
+        cpyNum -- the number of copies for each set
+        """
+
+        if not isinstance(setNum, int):
+            raise TypeError("The argument 'setNum' must be a integer")
+
+        if not isinstance(cpyNum, int):
+            raise TypeError("The argument 'cpyNum' must be a integer")
+
+        if setNum < 1 or \
+           setNum > 999999999:
+            raise ValueError("The argument 'setNum' must be between 1 and 999999999")
+
+        if cpyNum < 1 or \
+           cpyNum > 999999999:
+            raise ValueError("The argument 'cpyNum' must be between 1 and 999999999")
+
+        self.setNum = setNum
+        self.cpyNum = cpyNum
+
+        return self
+
     def makeScript(self) -> bytes:
         script = bytearray()
 
@@ -261,5 +300,8 @@ class Generator(common.Generator):
         # place SHIFT command
         if self.clrImgBuf:
             script += f"CLS{self.eol}".encode("ascii")
+
+        # place PRINT command
+        script += f"PRINT {self.setNum}, {self.cpyNum}{self.eol}".encode("ascii")
 
         return bytes(script)
