@@ -16,6 +16,8 @@ class Generator(common.Generator):
         self.labelSizeUnit = "inch"
         self.labelOffset = 0
         self.labelOffsetUnit = "inch"
+        self.printSpeed = 0
+        self.printDensity = 0
         self.refPosX = 0
         self.refPosY = 0
 
@@ -89,6 +91,41 @@ class Generator(common.Generator):
 
         return self
 
+    def setPrintSpeed(
+            self,
+            speed: Union[int, float]
+        ) -> "Generator":
+
+        if not isinstance(speed, (int, float)):
+            raise TypeError("The speed must be a number")
+
+        self.printSpeed = float(speed) if isinstance(speed, int) else speed
+
+        return self
+
+    def setPrintDensity(
+            self,
+            density: int
+        ) -> "Generator":
+
+        if not isinstance(density, int):
+            raise TypeError("The speed must be a integer")
+
+        if density < 0 or \
+           density > 15:
+            raise ValueError("The speed must be a between 1 and 15")
+
+        self.printDensity = density
+
+        return self
+
+    def setPrintDarkness(
+            self,
+            darkness: int
+        ) -> "Generator":
+
+        return self.setPrintDensity(darkness)
+
     def setReferencePoint(self, pos: tuple) -> "Generator":
         """Set the reference point of the label.
 
@@ -137,6 +174,12 @@ class Generator(common.Generator):
         elif self.labelOffsetUnit == "dot":
             snippet = f"{self.labelOffset} dot"
         script += f"OFFSET {snippet}{self.eol}".encode("ascii")
+
+        # place SPEED command
+        script += f"SPEED {self.printSpeed}{self.eol}".encode("ascii")
+
+        # place DENSITY command
+        script += f"DENSITY {self.printDensity}{self.eol}".encode("ascii")
 
         # place REFERENCE command
         script += f"REFERENCE {self.refPosX}, {self.refPosY}{self.eol}".encode("ascii")
