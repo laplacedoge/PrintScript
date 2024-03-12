@@ -295,6 +295,16 @@ class Generator(common.Generator):
         if not isinstance(mode, str):
             raise TypeError("The argument 'mode' must be a string")
 
+        posX, posY = pos
+        if posX < 0 or \
+           posY < 0:
+            raise ValueError("The integer in the argument 'pos' must be a positive")
+
+        desiredHeight, desiredWidth = size
+        if desiredWidth == -1 and \
+           desiredHeight == -1:
+            raise ValueError("The image width and height cannot be -1 at the same time")
+
         mode = mode.lower()
         if not mode == "overwrite" and \
            not mode == "or" and \
@@ -311,7 +321,6 @@ class Generator(common.Generator):
         originalHeight, originalWidth = originalImage.shape
 
         # resize image
-        desiredHeight, desiredWidth = size
         if desiredHeight == -1:
             desiredHeight = round(desiredWidth / originalWidth * originalHeight)
         elif desiredWidth == -1:
@@ -338,8 +347,6 @@ class Generator(common.Generator):
         imageWidth = ditheredWidth // 8
 
         imageHeight = ditheredHeight
-
-        posX, posY = pos
 
         if mode == "overwrite":
             modeIndicator = 0
