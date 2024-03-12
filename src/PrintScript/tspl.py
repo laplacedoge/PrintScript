@@ -300,7 +300,7 @@ class Generator(common.Generator):
            posY < 0:
             raise ValueError("The integer in the argument 'pos' must be a positive")
 
-        desiredHeight, desiredWidth = size
+        desiredWidth, desiredHeight = size
         if desiredWidth == -1 and \
            desiredHeight == -1:
             raise ValueError("The image width and height cannot be -1 at the same time")
