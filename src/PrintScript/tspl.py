@@ -370,15 +370,15 @@ class Generator(common.Generator):
         if self.labelSizeUnit == "inch":
             snippet = f"{self.labelWidth}"
             if self.labelLength is not None:
-                snippet += f", {self.labelLength}"
+                snippet += f",{self.labelLength}"
         elif self.labelSizeUnit == "mm":
             snippet = f"{self.labelWidth} mm"
             if self.labelLength is not None:
-                snippet += f", {self.labelLength} mm"
+                snippet += f",{self.labelLength} mm"
         elif self.labelSizeUnit == "dot":
             snippet = f"{self.labelWidth} dot"
             if self.labelLength is not None:
-                snippet += f", {self.labelLength} dot"
+                snippet += f",{self.labelLength} dot"
         script += f"SIZE {snippet}{self.eol}".encode("ascii")
 
         # place OFFSET command
@@ -397,13 +397,13 @@ class Generator(common.Generator):
         script += f"DENSITY {self.printDensity}{self.eol}".encode("ascii")
 
         # place DIRECTION command
-        script += f"DIRECTION {1 if self.vFlip else 0}, {1 if self.hFlip else 0}{self.eol}".encode("ascii")
+        script += f"DIRECTION {1 if self.vFlip else 0},{1 if self.hFlip else 0}{self.eol}".encode("ascii")
 
         # place REFERENCE command
-        script += f"REFERENCE {self.refPosX}, {self.refPosY}{self.eol}".encode("ascii")
+        script += f"REFERENCE {self.refPosX},{self.refPosY}{self.eol}".encode("ascii")
 
         # place SHIFT command
-        script += f"SHIFT {self.shiftX}, {self.shiftY}{self.eol}".encode("ascii")
+        script += f"SHIFT {self.shiftX},{self.shiftY}{self.eol}".encode("ascii")
 
         # place SHIFT command
         if self.clrImgBuf:
@@ -414,6 +414,6 @@ class Generator(common.Generator):
             script += bitmap
 
         # place PRINT command
-        script += f"PRINT {self.setNum}, {self.cpyNum}{self.eol}".encode("ascii")
+        script += f"PRINT {self.setNum},{self.cpyNum}{self.eol}".encode("ascii")
 
         return bytes(script)
