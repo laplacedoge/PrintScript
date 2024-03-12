@@ -1,3 +1,4 @@
+from typing import Union
 from . import common
 
 class Generator(common.Generator):
@@ -13,6 +14,8 @@ class Generator(common.Generator):
         self.labelWidth = 0
         self.labelLength = 0
         self.labelSizeUnit = "inch"
+        self.labelOffset = 0
+        self.labelOffsetUnit = "inch"
         self.refPosX = 0
         self.refPosY = 0
 
@@ -53,6 +56,31 @@ class Generator(common.Generator):
 
         return self
 
+    def setLabelOffset(self, offset: Union[int, float], unit: str="inch") -> "Generator":
+        """Set the extra feeding length of the label.
+
+        Parameters:
+        offset -- the extra feeding length of the label
+        unit -- the unit of measurement, it must be inch, mm, or dot
+        """
+
+        if not unit in ("inch", "mm", "dot"):
+            raise ValueError("The unit of measurement must be inch, mm, or dot")
+
+        if unit == "inch" or unit == "mm":
+            if not isinstance(offset, (int, float)):
+                raise TypeError("The offset must be a number when " + \
+                                "the unit of measurement is inch or mm")
+        elif unit == "dot":
+            if not isinstance(offset, int):
+                raise TypeError("The offset must be a tuple of integer when " + \
+                                "the unit of measurement is dot")
+
+        self.labelOffset = offset
+        self.labelOffsetUnit = unit
+
+        return self
+
     def setReferencePoint(self, pos: tuple) -> "Generator":
         """Set the reference point of the label.
 
@@ -90,6 +118,15 @@ class Generator(common.Generator):
             if self.labelLength is not None:
                 snippet += f", {self.labelLength} dot"
         script += f"SIZE {snippet}{self.eol}".encode("ascii")
+
+        # place OFFSET command
+        if self.labelOffsetUnit == "inch":
+            snippet = f"{self.labelOffset}"
+        elif self.labelOffsetUnit == "mm":
+            snippet = f"{self.labelOffset} mm"
+        elif self.labelOffsetUnit == "dot":
+            snippet = f"{self.labelOffset} dot"
+        script += f"OFFSET {snippet}{self.eol}".encode("ascii")
 
         # place REFERENCE command
         script += f"REFERENCE {self.refPosX}, {self.refPosY}{self.eol}".encode("ascii")
