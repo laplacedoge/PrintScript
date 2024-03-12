@@ -112,6 +112,8 @@ class Generator(common.Generator):
     def makeScript(self) -> bytes:
         script = bytearray()
 
+        snippet = ""
+
         # place SIZE command
         if self.labelSizeUnit == "inch":
             snippet = f"{self.labelWidth}"
