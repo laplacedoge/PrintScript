@@ -14,9 +14,9 @@ class Generator(common.Generator):
         self.eol = Generator.DEF_LINE_BREAK
         self.labelWidth = 0
         self.labelLength = 0
-        self.labelSizeUnit = "inch"
+        self.labelSizeUnit = "mm"
         self.labelOffset = 0
-        self.labelOffsetUnit = "inch"
+        self.labelOffsetUnit = "mm"
         self.printSpeed = 0
         self.printDensity = 0
         self.vFlip = False
@@ -58,7 +58,7 @@ class Generator(common.Generator):
             self,
             size: Tuple[Union[int, float],
                         Union[int, float]],
-            unit: str="inch"
+            unit: str="mm"
         ) -> "Generator":
         """Set the width and length of the label.
 
@@ -88,7 +88,7 @@ class Generator(common.Generator):
 
         return self
 
-    def setLabelOffset(self, offset: Union[int, float], unit: str="inch") -> "Generator":
+    def setLabelOffset(self, offset: Union[int, float], unit: str="mm") -> "Generator":
         """Set the extra feeding length of the label.
 
         Parameters:
