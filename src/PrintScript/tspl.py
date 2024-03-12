@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 from . import common
 
 class Generator(common.Generator):
@@ -30,7 +30,12 @@ class Generator(common.Generator):
 
         return self
 
-    def setLabelSize(self, size: tuple, unit: str="inch") -> "Generator":
+    def setLabelSize(
+            self,
+            size: Tuple[Union[int, float],
+                        Union[int, float]],
+            unit: str="inch"
+        ) -> "Generator":
         """Set the width and length of the label.
 
         Parameters:
@@ -38,17 +43,20 @@ class Generator(common.Generator):
         unit -- the unit of measurement, it must be inch, mm, or dot
         """
 
+        if not unit in ("inch", "mm", "dot"):
+            raise ValueError("The unit of measurement must be inch, mm, or dot")
+
         if not isinstance(size, tuple) or \
            not all(isinstance(item, (int, float)) for item in size):
             raise TypeError("The size must be a tuple of one or two numbers")
+
         if not len(size) <= 2:
             raise ValueError("The size must be a tuple of one or two numbers")
-        if not unit in ("inch", "mm", "dot"):
-            raise ValueError("The unit of measurement must be inch, mm, or dot")
-        if unit in ("mm", "dot") and \
+
+        if unit == "dot" and \
            not all(isinstance(item, int) for item in size):
             raise TypeError("The size must be a tuple of integer when " + \
-                            "the unit of measurement is mm or dot")
+                            "the unit of measurement is dot")
 
         self.labelWidth = size[0]
         self.labelLength = size[1] if len(size) == 2 else None
