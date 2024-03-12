@@ -1,5 +1,6 @@
 from typing import Tuple, Union
 from . import common
+import cv2 as cv
 
 class Generator(common.Generator):
     DEF_LINE_BREAK = "\r\n"
@@ -32,6 +33,9 @@ class Generator(common.Generator):
         # specifies how many copies should be
         # printed for each particular label set
         self.cpyNum = 1
+
+        # bitmap queue
+        self.bitmapQueue = []
 
     def setEol(self, eol: str) -> "Generator":
         """Set the end-of-line string.
@@ -253,6 +257,104 @@ class Generator(common.Generator):
 
         return self
 
+    def addBitmap(
+            self,
+            pos: Tuple[int, int],
+            size: Tuple[int, int],
+            path: str,
+            mode: str=""
+        ) -> "Generator":
+
+        """Add a bitmap image
+
+        Parameters:
+        pos -- expected image position
+        size -- expected image size
+        path -- the path of the image
+        mode -- graphic mode, must be 'overwrite', 'or', or 'xor'
+        """
+
+        import os, math
+        import numpy as np
+        from .algorithm import FloydSteinbergDither
+
+        if not isinstance(pos, tuple) or \
+           not all(isinstance(item, int) for item in pos):
+            raise TypeError("The argument 'pos' must be a tuple of exactly two integers")
+
+        if not isinstance(size, tuple) or \
+           not all(isinstance(item, int) for item in size):
+            raise TypeError("The argument 'size' must be a tuple of exactly two integers")
+
+        if not isinstance(mode, str):
+            raise TypeError("The argument 'mode' must be a string")
+
+        mode = mode.lower()
+        if not mode == "overwrite" and \
+           not mode == "or" and \
+           not mode == "xor":
+            raise ValueError("The argument 'mode' must be 'overwrite', 'or', or 'xor'")
+
+        if not os.path.isfile(path):
+            raise FileNotFoundError(f"file '{path}' is not found")
+
+        originalImage: np.ndarray = cv.imread(path, cv.IMREAD_GRAYSCALE)
+        if originalImage is None:
+            raise ValueError(f"file '{path}' is not a valid image")
+
+        originalHeight, originalWidth = originalImage.shape
+
+        # resize image
+        desiredHeight, desiredWidth = size
+        if desiredHeight == -1:
+            desiredHeight = round(desiredWidth / originalWidth * originalHeight)
+        elif desiredWidth == -1:
+            desiredWidth = round(desiredHeight / originalHeight * originalWidth)
+        desiredImage = cv.resize(originalImage, (desiredWidth, desiredHeight),
+                                 interpolation=cv.INTER_CUBIC)
+
+        # pad image
+        paddedWidth = math.ceil(desiredWidth / 8) * 8
+        paddedHeight = desiredHeight
+        paddingPixels = paddedWidth - desiredWidth
+        paddedImage = np.pad(desiredImage, ((0, 0), (0, paddingPixels)),
+                             mode='constant', constant_values=255)
+
+        # dither image
+        ditheredImage = FloydSteinbergDither(paddedImage)
+        ditheredWidth = paddedWidth
+        ditheredHeight = paddedHeight
+
+        # pack image
+        packedImage = np.packbits(ditheredImage, axis=-1)
+
+        # image width (int bytes)
+        imageWidth = ditheredWidth // 8
+
+        imageHeight = ditheredHeight
+
+        posX, posY = pos
+
+        if mode == "overwrite":
+            modeIndicator = 0
+        if mode == "or":
+            modeIndicator = 1
+        if mode == "xor":
+            modeIndicator = 2
+        else:
+            modeIndicator = 0
+
+        imageData = packedImage.tobytes()
+
+        script = bytearray()
+        script += f"BITMAP {posX},{posY},{imageWidth},{ditheredHeight},{modeIndicator},".encode("ascii")
+        script += imageData
+        script += self.eol.encode("ascii")
+
+        self.bitmapQueue.append(script)
+
+        return self
+
     def makeScript(self) -> bytes:
         script = bytearray()
 
@@ -300,6 +402,10 @@ class Generator(common.Generator):
         # place SHIFT command
         if self.clrImgBuf:
             script += f"CLS{self.eol}".encode("ascii")
+
+        # place BITMAP command
+        for bitmap in self.bitmapQueue:
+            script += bitmap
 
         # place PRINT command
         script += f"PRINT {self.setNum}, {self.cpyNum}{self.eol}".encode("ascii")
