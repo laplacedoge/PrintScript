@@ -18,8 +18,12 @@ class Generator(common.Generator):
         self.labelOffsetUnit = "inch"
         self.printSpeed = 0
         self.printDensity = 0
+        self.vFlip = False
+        self.hFlip = False
         self.refPosX = 0
         self.refPosY = 0
+        self.shiftX = 0
+        self.shiftY = 0
 
     def setEol(self, eol: str) -> "Generator":
         """Set the end-of-line string.
@@ -126,6 +130,28 @@ class Generator(common.Generator):
 
         return self.setPrintDensity(darkness)
 
+    def setPrintDirection(
+            self,
+            vFlip: bool,
+            hFlip: bool = False
+        ) -> "Generator":
+
+        """Set the printout direction and mirror image
+
+        Parameters:
+        vFlip -- whether to flip the image vertically
+        hFlip -- whether to flip the image horizontally
+        """
+
+        if not isinstance(vFlip, bool) or \
+           not isinstance(hFlip, bool):
+            raise ValueError("The vFlip and hFlip must be of boolean")
+
+        self.vFlip = vFlip
+        self.hFlip = hFlip
+
+        return self
+
     def setReferencePoint(self, pos: tuple) -> "Generator":
         """Set the reference point of the label.
 
@@ -143,6 +169,28 @@ class Generator(common.Generator):
 
         self.refPosX = pos[0]
         self.refPosY = pos[1]
+
+        return self
+
+    def setLabelShift(
+            self,
+            shiftX: int,
+            shiftY: int
+        ) -> "Generator":
+
+        """Set the printout direction and mirror image
+
+        Parameters:
+        shiftX -- X-axis shift (int dots)
+        shiftY -- Y-axis shift (int dots)
+        """
+
+        if not isinstance(shiftX, bool) or \
+           not isinstance(shiftY, bool):
+            raise ValueError("The shiftX and shiftY must be integers")
+
+        self.shiftX = shiftX
+        self.shiftY = shiftY
 
         return self
 
@@ -181,7 +229,13 @@ class Generator(common.Generator):
         # place DENSITY command
         script += f"DENSITY {self.printDensity}{self.eol}".encode("ascii")
 
+        # place DIRECTION command
+        script += f"DIRECTION {1 if self.vFlip else 0}, {1 if self.hFlip else 0}{self.eol}".encode("ascii")
+
         # place REFERENCE command
         script += f"REFERENCE {self.refPosX}, {self.refPosY}{self.eol}".encode("ascii")
+
+        # place SHIFT command
+        script += f"SHIFT {self.shiftX}, {self.shiftY}{self.eol}".encode("ascii")
 
         return bytes(script)
