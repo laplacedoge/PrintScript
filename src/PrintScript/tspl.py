@@ -24,6 +24,7 @@ class Generator(common.Generator):
         self.refPosY = 0
         self.shiftX = 0
         self.shiftY = 0
+        self.clrImgBuf = True
 
     def setEol(self, eol: str) -> "Generator":
         """Set the end-of-line string.
@@ -194,6 +195,25 @@ class Generator(common.Generator):
 
         return self
 
+    def setImageBufferClear(
+            self,
+            cleared: bool
+        ) -> "Generator":
+
+        """Set the printout direction and mirror image
+
+        Parameters:
+        shiftX -- X-axis shift (int dots)
+        shiftY -- Y-axis shift (int dots)
+        """
+
+        if not isinstance(cleared, bool):
+            raise ValueError("The argument 'cleared' must be of boolean")
+
+        self.clrImgBuf = cleared
+
+        return self
+
     def makeScript(self) -> bytes:
         script = bytearray()
 
@@ -237,5 +257,9 @@ class Generator(common.Generator):
 
         # place SHIFT command
         script += f"SHIFT {self.shiftX}, {self.shiftY}{self.eol}".encode("ascii")
+
+        # place SHIFT command
+        if self.clrImgBuf:
+            script += f"CLS{self.eol}".encode("ascii")
 
         return bytes(script)
