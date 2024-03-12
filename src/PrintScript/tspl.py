@@ -37,6 +37,12 @@ class Generator(common.Generator):
         # bitmap queue
         self.bitmapQueue = []
 
+    def clear(self):
+        """Reset all the internal parameters and clear all the images.
+        """
+
+        self.__resetParam()
+
     def setEol(self, eol: str) -> "Generator":
         """Set the end-of-line string.
 
